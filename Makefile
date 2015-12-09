@@ -1,5 +1,5 @@
-PROJNAME=github.com/hlandau/acme
-BINARIES=$(PROJNAME)/cmd/acmetool
+PROJNAME=github.com/equinox0815/acme
+BINARIES=$(PROJNAME)/cmd/acmetool $(PROJNAME)/cmd/acmetool-redirector
 
 ###############################################################################
 # v1.10  NNSC:github.com/hlandau/degoutils/_stdenv/Makefile.ref

@@ -70,7 +70,7 @@ The service name will be acmetool-redirector.`,
 	rdr := sdunit.Serialize([]*sdunit.UnitOption{
 		sdunit.NewUnitOption("Unit", "Description", "acmetool HTTP redirector"),
 		sdunit.NewUnitOption("Service", "Type", "notify"),
-		sdunit.NewUnitOption("Service", "ExecStart", exepath.Abs+` redirector --service.uid=`+username),
+		sdunit.NewUnitOption("Service", "ExecStart", exepath.Abs+`-redirector run --service.uid=`+username),
 		sdunit.NewUnitOption("Service", "Restart", "always"),
 		sdunit.NewUnitOption("Service", "RestartSec", "30"),
 		sdunit.NewUnitOption("Install", "WantedBy", "multi-user.target"),
