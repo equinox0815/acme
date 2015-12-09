@@ -4,19 +4,15 @@ import (
 	"fmt"
 	"github.com/hlandau/acme/interaction"
 	"github.com/hlandau/acme/notify"
-	"github.com/hlandau/acme/redirector"
 	"github.com/hlandau/acme/storage"
 	"github.com/hlandau/degoutils/xlogconfig"
 	"github.com/hlandau/xlog"
 	"github.com/square/go-jose"
 	"gopkg.in/alecthomas/kingpin.v2"
 	"gopkg.in/hlandau/easyconfig.v1/adaptflag"
-	"gopkg.in/hlandau/service.v2"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
-	"path/filepath"
-	"strings"
 )
 
 var log, Log = xlog.New("acmetool")
@@ -48,10 +44,6 @@ var (
 
 	quickstartCmd = kingpin.Command("quickstart", "Interactively ask some getting started questions (recommended)")
 	expertFlag    = quickstartCmd.Flag("expert", "Ask more questions in quickstart wizard").Bool()
-
-	redirectorCmd      = kingpin.Command("redirector", "HTTP to HTTPS redirector with challenge response support")
-	redirectorPathFlag = redirectorCmd.Flag("path", "Path to serve challenge files from").String()
-	redirectorGIDFlag  = redirectorCmd.Flag("challenge-gid", "GID to chgrp the challenge path to (optional)").String()
 
 	importJWKAccountCmd = kingpin.Command("import-jwk-account", "Import a JWK account key")
 	importJWKURLArg     = importJWKAccountCmd.Arg("provider-url", "Provider URL (e.g. https://acme-v01.api.letsencrypt.org/directory)").Required().String()
@@ -90,8 +82,6 @@ func main() {
 		cmdReconcile()
 	case "quickstart":
 		cmdQuickstart()
-	case "redirector":
-		cmdRunRedirector()
 	case "import-key":
 		cmdImportKey()
 	case "import-jwk-account":
@@ -147,39 +137,6 @@ func cmdWant() {
 
 	err = s.AddTarget(tgt)
 	log.Fatale(err, "add target")
-}
-
-func cmdRunRedirector() {
-	rpath := *redirectorPathFlag
-	if rpath == "" {
-		rpath = determineWebroot()
-	}
-
-	service.Main(&service.Info{
-		Name:          "acmetool",
-		Description:   "acmetool HTTP redirector",
-		DefaultChroot: rpath,
-		NewFunc: func() (service.Runnable, error) {
-			return redirector.New(redirector.Config{
-				Bind:          ":80",
-				ChallengePath: rpath,
-				ChallengeGID:  *redirectorGIDFlag,
-			})
-		},
-	})
-}
-
-func determineWebroot() string {
-	// don't use fdb for this, we don't need access to the whole db
-	b, err := ioutil.ReadFile(filepath.Join(*stateFlag, "conf", "webroot-path"))
-	if err == nil {
-		s := strings.TrimSpace(strings.Split(strings.TrimSpace(string(b)), "\n")[0])
-		if s != "" {
-			return s
-		}
-	}
-
-	return "/var/run/acme/acme-challenge"
 }
 
 // YAML response file loading.
