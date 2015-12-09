@@ -32,16 +32,13 @@ var (
 			PlaceHolder(notify.DefaultHookPath).
 			String()
 
-	batchFlag = kingpin.Flag("batch", "Do not attempt interaction; useful for cron jobs").
-			Bool()
-
-	stdioFlag = kingpin.Flag("stdio", "Don't attempt to use console dialogs; fall back to stdio prompts").Bool()
-
 	responseFileFlag = kingpin.Flag("response-file", "Read dialog responses from the given file").ExistingFile()
 
-	redirectorCmd      = kingpin.Command("run", "HTTP to HTTPS redirector with challenge response support")
-	redirectorPathFlag = redirectorCmd.Flag("path", "Path to serve challenge files from").String()
-	redirectorGIDFlag  = redirectorCmd.Flag("challenge-gid", "GID to chgrp the challenge path to (optional)").String()
+	installCmd  = kingpin.Command("install", "Install systemd unit file for redirector")
+
+	runCmd      = kingpin.Command("run", "HTTP to HTTPS redirector with challenge response support")
+	runPathFlag = runCmd.Flag("path", "Path to serve challenge files from").String()
+	runGIDFlag  = runCmd.Flag("challenge-gid", "GID to chgrp the challenge path to (optional)").String()
 )
 
 func main() {
@@ -49,13 +46,8 @@ func main() {
 	cmd := kingpin.Parse()
 	xlogconfig.Init()
 
-	if *batchFlag {
-		interaction.NonInteractive = true
-	}
-
-	if *stdioFlag {
-		interaction.NoDialog = true
-	}
+	interaction.NonInteractive = true
+	interaction.NoDialog = true
 
 	if *responseFileFlag != "" {
 		err := loadResponseFile(*responseFileFlag)
@@ -63,26 +55,28 @@ func main() {
 	}
 
 	switch cmd {
+	case "install":
+		cmdInstallRedirector()
 	case "run":
 		cmdRunRedirector()
 	}
 }
 
 func cmdRunRedirector() {
-	rpath := *redirectorPathFlag
+	rpath := *runPathFlag
 	if rpath == "" {
 		rpath = determineWebroot()
 	}
 
 	service.Main(&service.Info{
-		Name:          "acmetool",
+		Name:          "acmetool-redirector",
 		Description:   "acmetool HTTP redirector",
 		DefaultChroot: rpath,
 		NewFunc: func() (service.Runnable, error) {
 			return redirector.New(redirector.Config{
 				Bind:          ":80",
 				ChallengePath: rpath,
-				ChallengeGID:  *redirectorGIDFlag,
+				ChallengeGID:  *runGIDFlag,
 			})
 		},
 	})

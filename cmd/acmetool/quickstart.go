@@ -8,7 +8,6 @@ import (
 	"github.com/hlandau/acme/interaction"
 	"github.com/hlandau/acme/notify"
 	"github.com/hlandau/acme/storage"
-	"gopkg.in/hlandau/service.v2/passwd"
 	"gopkg.in/hlandau/svcutils.v1/exepath"
 	"io/ioutil"
 	"os"
@@ -58,10 +57,6 @@ func cmdQuickstart() {
 
 	prog.SetProgress(1, 1)
 	prog.Close()
-
-	if method == "redirector" {
-		promptSystemd()
-	}
 
 	installDefaultHooks()
 	if _, err := exec.LookPath("haproxy"); err == nil {
@@ -336,19 +331,6 @@ Do you want to install the HAProxy notification hook?
 	return !r.Cancelled
 }
 
-var usernamesToTry = []string{"daemon", "nobody"}
-
-func determineAppropriateUsername() (string, error) {
-	for _, u := range usernamesToTry {
-		_, err := passwd.ParseUID(u)
-		if err == nil {
-			return u, nil
-		}
-	}
-
-	return "", fmt.Errorf("cannot find appropriate username")
-}
-
 func promptRSAKeySize() int {
 	r, err := interaction.Auto.Prompt(&interaction.Challenge{
 		Title: "RSA Key Size",
@@ -465,8 +447,6 @@ WEBROOT: The webroot option installs challenge files to a given directory. You m
 
 PROXY: The proxy option requires you to configure your web server to proxy requests for paths under /.well-known/acme-challenge/ to a special web server running on port 402, which will serve challenges appropriately.
 
-REDIRECTOR: The redirector option runs a special web server daemon on port 80. This means that you cannot run your own web server on port 80. The redirector redirects all HTTP requests to the equivalent HTTPS URL, so this is useful if you want to enforce use of HTTPS. You will need to configure your web server to not listen on port 80, and you will need to configure your system to run "acmetool redirector" as a daemon. If your system uses systemd, an appropriate unit file can automatically be installed.
-
 LISTEN: Directly listen on port 80 or 443, whichever is available, in order to complete challenges. This is useful only for development purposes.`,
 		ResponseType: interaction.RTSelect,
 		Options: []interaction.Option{
@@ -476,9 +456,6 @@ LISTEN: Directly listen on port 80 or 443, whichever is available, in order to c
 			},
 			{Title: "PROXY - I'll proxy challenge requests to an HTTP server",
 				Value: "proxy",
-			},
-			{Title: "REDIRECTOR - I want to use acmetool's redirect-to-HTTPS functionality",
-				Value: "redirector",
 			},
 			{Title: "LISTEN - Listen on port 80 or 443 (only useful for development purposes)",
 				Value: "listen",

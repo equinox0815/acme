@@ -3,17 +3,15 @@
 package main
 
 import (
-	"fmt"
 	sddbus "github.com/coreos/go-systemd/dbus"
 	sdunit "github.com/coreos/go-systemd/unit"
 	sdutil "github.com/coreos/go-systemd/util"
-	"github.com/hlandau/acme/interaction"
 	"gopkg.in/hlandau/svcutils.v1/exepath"
 	"io"
 	"os"
 )
 
-func promptSystemd() {
+func cmdInstallRedirector() {
 	if !sdutil.IsRunningSystemd() {
 		log.Debugf("not running systemd")
 		return
@@ -40,20 +38,6 @@ func promptSystemd() {
 		return
 	}
 
-	r, err := interaction.Auto.Prompt(&interaction.Challenge{
-		Title: "Install Redirector as systemd Service?",
-		Body: `Would you like acmetool to automatically install the redirector as a systemd service?
-
-The service name will be acmetool-redirector.`,
-		ResponseType: interaction.RTYesNo,
-		UniqueID:     "acmetool-quickstart-install-redirector-systemd",
-	})
-	log.Fatale(err, "interaction")
-
-	if r.Cancelled {
-		return
-	}
-
 	username, err := determineAppropriateUsername()
 	if err != nil {
 		log.Errore(err, "determine appropriate username")
@@ -70,7 +54,7 @@ The service name will be acmetool-redirector.`,
 	rdr := sdunit.Serialize([]*sdunit.UnitOption{
 		sdunit.NewUnitOption("Unit", "Description", "acmetool HTTP redirector"),
 		sdunit.NewUnitOption("Service", "Type", "notify"),
-		sdunit.NewUnitOption("Service", "ExecStart", exepath.Abs+`-redirector run --service.uid=`+username),
+		sdunit.NewUnitOption("Service", "ExecStart", exepath.Abs+` run --service.uid=`+username),
 		sdunit.NewUnitOption("Service", "Restart", "always"),
 		sdunit.NewUnitOption("Service", "RestartSec", "30"),
 		sdunit.NewUnitOption("Install", "WantedBy", "multi-user.target"),
@@ -95,13 +79,5 @@ The service name will be acmetool-redirector.`,
 	if err != nil {
 		resultStr = "The acmetool-redirector service WAS NOT successfully started. You may have a web server listening on port 80. You will need to troubleshoot this yourself."
 	}
-
-	_, err = interaction.Auto.Prompt(&interaction.Challenge{
-		Title: "systemd Service Installation Complete",
-		Body: fmt.Sprintf(`acmetool-redirector has been installed as a systemd service.
-    
-    %s`, resultStr),
-		UniqueID: "acmetool-quickstart-complete",
-	})
-	log.Errore(err, "interaction")
+	log.Debug(resultStr)
 }

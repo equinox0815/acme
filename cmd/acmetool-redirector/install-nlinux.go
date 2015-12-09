@@ -2,5 +2,5 @@
 
 package main
 
-func promptSystemd() {
+func cmdInstallRedirector() {
 }
